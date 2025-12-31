@@ -1,0 +1,38 @@
+# Screenshot to cliboard in XFCE4 and claude cli
+cat << 'EOF' > ~/.local/bin/screenshot-to-clipboard
+#!/bin/bash
+# Screenshot → save to temp dir → copy path to clipboard
+# For XFCE4 - Uses scrot for reliable silent operation
+
+SAVE_DIR="$HOME/.tmp/clipboard"
+mkdir -p "$SAVE_DIR"
+
+# Delete screenshots older than 1 day
+find "$SAVE_DIR" -name "screenshot_*.png" -type f -mtime +0 -delete
+
+FILENAME="screenshot_$(date +%Y%m%d_%H%M%S).png"
+FILEPATH="$SAVE_DIR/$FILENAME"
+
+# Take screenshot with scrot (region selection)
+# -s = select region, -f = freeze screen while selecting
+scrot -s -f "$FILEPATH"
+
+# Check if screenshot was taken
+if [ -f "$FILEPATH" ]; then
+    # Copy path to clipboard
+    echo -n "$FILEPATH" | xsel -b
+    notify-send "Screenshot saved" "Path copied to clipboard:\n$FILENAME" -t 2000
+else
+    notify-send "Screenshot cancelled" -t 1000
+fi
+EOF
+
+chmod +x ~/.local/bin/screenshot-to-clipboard
+
+# Install dependencies
+sudo apt install scrot xsel libnotify-bin -y
+
+# Add keyboard shortcut (Left Alt + P)
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Alt>p" -n -t string -s "$HOME/.local/bin/screenshot-to-clipboard"
+
+echo "Done! Press Left Alt + P to take a screenshot."
